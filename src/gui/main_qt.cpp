@@ -4,9 +4,8 @@
 
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
-    app.setApplicationName("MazeUtil");
+    app.setApplicationName("MazeUtilQt");
     app.setOrganizationName("MazeUtil");
-    app.setQuitOnLastWindowClosed(true);
 
     MazeWindow window;
     window.show();

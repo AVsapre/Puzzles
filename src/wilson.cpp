@@ -1,39 +1,24 @@
 #include "wilson.h"
-#include <vector>
-#include <unordered_set>
-#include <unordered_map>
-#include <random>
 #include <algorithm>
+#include <array>
 #include <cassert>
+#include <random>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
+#include "algoutils.h"
 #include "maze.h"
 #include "rand.h"
 
-using namespace std;
-
-static pair<int,int> moveCoord(const pair<int,int>& coord, const Direction dir) {
-    switch (dir) {
-        case Direction::UP:    return {coord.first, coord.second - 2};
-        case Direction::DOWN:  return {coord.first, coord.second + 2};
-        case Direction::LEFT:  return {coord.first - 2, coord.second};
-        case Direction::RIGHT: return {coord.first + 2, coord.second};
-    }
-    return coord;
-}
-
-static bool inBounds(const int x, const int y, const int width, const int height) {
-    return x > 0 && y > 0 && x < width - 1 && y < height - 1 &&
-        x % 2 == 1 && y % 2 == 1;
-}
-
-static uint64_t encode(int x, int y) {
+static uint64_t encode(const int x, const int y) {
     return (static_cast<uint64_t>(y) << 32) | static_cast<uint32_t>(x);
 }
 
 static void carvePath(
-    vector<vector<unsigned char>>& v,
-    const vector<pair<int,int>>& path,
-    unordered_set<uint64_t>& unvisited
+    std::vector<std::vector<unsigned char>>& v,
+    const std::vector<std::pair<int,int>>& path,
+    std::unordered_set<uint64_t>& unvisited
 ) {
     for (size_t i = 0; i + 1 < path.size(); ++i) {
         auto a = path[i];
@@ -50,21 +35,14 @@ void wilson(std::vector<std::vector<unsigned char>>& v) {
     assert(!v.empty() && !v.front().empty());
     const int height = v.size();
     const int width = v[0].size();
-    const std::vector dirs = {
-        Direction::UP,
-        Direction::DOWN,
-        Direction::LEFT,
-        Direction::RIGHT
-    };
 
-
-    unordered_set<uint64_t> unvisited;
+    std::unordered_set<uint64_t> unvisited;
     for (int y = 1; y < height; y += 2)
         for (int x = 1; x < width; x += 2)
             unvisited.insert(encode(x, y));
 
-    uniform_int_distribution dist_x(1, width - 2);
-    uniform_int_distribution dist_y(1, height - 2);
+    std::uniform_int_distribution dist_x(1, width - 2);
+    std::uniform_int_distribution dist_y(1, height - 2);
     int sx = dist_x(rng) | 1;
     int sy = dist_y(rng) | 1;
     v[sy][sx] = 0;
@@ -80,23 +58,28 @@ void wilson(std::vector<std::vector<unsigned char>>& v) {
 
     while (!unvisited.empty()) {
         const auto cur = pickRandomUnvisited();
-        vector path = {cur};
-        unordered_map<uint64_t, size_t> index;
+        std::vector path = {cur};
+        std::unordered_map<uint64_t, size_t> index;
         index[encode(cur.first, cur.second)] = 0;
 
         while (true) {
-            vector<Direction> validMoves;
-            for (auto d : dirs) {
-                auto [fst, snd] = moveCoord(path.back(), d);
-                if (inBounds(fst, snd, width, height))
-                    validMoves.push_back(d);
+            std::vector<Step> validMoves;
+            for (const auto& step : kSteps) {
+                const int nx = path.back().first + step.dx;
+                const int ny = path.back().second + step.dy;
+                if (in_bounds_cell(nx, ny, width, height) && (nx & 1) && (ny & 1)) {
+                    validMoves.push_back(step);
+                }
             }
 
             if (validMoves.empty())
                 break;
 
-            const Direction d = validMoves[uniform_int_distribution<int>(0, validMoves.size() - 1)(rng)];
-            auto next = moveCoord(path.back(), d);
+            const Step step = validMoves[std::uniform_int_distribution<size_t>(0, validMoves.size() - 1)(rng)];
+            const auto next = std::pair<int, int>{
+                path.back().first + step.dx,
+                path.back().second + step.dy
+            };
 
             if (uint64_t key = encode(next.first, next.second); index.contains(key)) {
                 path.resize(index[key] + 1);

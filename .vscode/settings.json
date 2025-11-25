@@ -1,0 +1,8 @@
+{
+  "cmake.configureOnOpen": true,
+  "cmake.sourceDirectory": "${workspaceFolder}",
+  "cmake.buildDirectory": "${workspaceFolder}/build/Debug",
+  "cmake.buildType": "Debug",
+  "cmake.defaultBuildTarget": "MazeUtil",
+  "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
+}

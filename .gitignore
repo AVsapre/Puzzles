@@ -8,6 +8,7 @@ Makefile
 *.out
 *.exe
 *.log
+build/
 
 # CLion and IDE files
 .idea/
