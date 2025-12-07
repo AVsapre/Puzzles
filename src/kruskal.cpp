@@ -1,76 +1,47 @@
-#include "kruskal.h"
+#include "puzzles/algoutils.h"
 
 #include <algorithm>
-#include <cassert>
-#include <random>
+#include <numeric>
+#include <vector>
 
-extern std::mt19937 rng;
-
-struct Wall {
-    int wx, wy; // wall position
-    int cell1_x, cell1_y;
-    int cell2_x, cell2_y;
-};
-
+namespace {
 struct DisjointSet {
-    std::vector<int> parent, rank;
-    explicit DisjointSet(int n) : parent(n), rank(n, 0) {
-        for (int i = 0; i < n; ++i) parent[i] = i;
+    explicit DisjointSet(const int n) : parent(n), rank(n, 0) {
+        std::iota(parent.begin(), parent.end(), 0);
     }
-    int find(int x) {
+    int find(const int x) {
         if (parent[x] != x) parent[x] = find(parent[x]);
         return parent[x];
     }
-    void unite(int x, int y) {
-        int rx = find(x), ry = find(y);
-        if (rx == ry) return;
-        if (rank[rx] < rank[ry]) parent[rx] = ry;
-        else {
-            parent[ry] = rx;
-            if (rank[rx] == rank[ry]) rank[rx]++;
-        }
+    bool unite(const int a, const int b) {
+        int ra = find(a);
+        int rb = find(b);
+        if (ra == rb) return false;
+        if (rank[ra] < rank[rb]) std::swap(ra, rb);
+        parent[rb] = ra;
+        if (rank[ra] == rank[rb]) ++rank[ra];
+        return true;
     }
+    std::vector<int> parent;
+    std::vector<int> rank;
 };
+} 
 
-void kruskal(std::vector<std::vector<unsigned char>> &maze) {
-    assert(!maze.empty() && !maze.front().empty());
-    int h = (int)maze.size();
-    int w = (int)maze[0].size();
+MazeGraph kruskal_generate(MazeGraph g) {
+    const int edgeCount = static_cast<int>(g.edges.size());
+    if (edgeCount == 0) return g;
 
-    for (auto &row : maze) std::fill(row.begin(), row.end(), 1);
+    std::vector<int> order(edgeCount);
+    std::iota(order.begin(), order.end(), 0);
+    std::shuffle(order.begin(), order.end(), rng);
 
-    int cells_h = (h - 1) / 2;
-    int cells_w = (w - 1) / 2;
-
-    auto cell_id = [cells_w](int y, int x) { return y * cells_w + x; };
-
-    DisjointSet ds(cells_h * cells_w);
-
-    std::vector<Wall> walls;
-    for (int y = 0; y < cells_h; ++y) {
-        for (int x = 0; x < cells_w; ++x) {
-            int cx = 2 * x + 1;
-            int cy = 2 * y + 1;
-            maze[cy][cx] = 0; // mark cell as open
-
-            if (x + 1 < cells_w) {
-                walls.push_back({cx + 1, cy, cx, cy, cx + 2, cy});
-            }
-            if (y + 1 < cells_h) {
-                walls.push_back({cx, cy + 1, cx, cy, cx, cy + 2});
-            }
+    DisjointSet ds(static_cast<int>(g.nodes.size()));
+    for (const int idx : order) {
+        const auto& e = g.edges[idx];
+        if (ds.unite(e.from, e.to)) {
+            g.edges[idx].open = true;
         }
     }
 
-    std::ranges::shuffle(walls, rng);
-
-    for (const auto &w : walls) {
-        int id1 = cell_id((w.cell1_y - 1) / 2, (w.cell1_x - 1) / 2);
-        int id2 = cell_id((w.cell2_y - 1) / 2, (w.cell2_x - 1) / 2);
-
-        if (ds.find(id1) != ds.find(id2)) {
-            maze[w.wy][w.wx] = 0;
-            ds.unite(id1, id2);
-        }
-    }
+    return g;
 }

@@ -1,68 +1,62 @@
-#include "prim.h"
+#include "puzzles/algoutils.h"
 
 #include <algorithm>
-#include <cassert>
-#include <random>
-#include <ranges>
 #include <vector>
 
-#include "algoutils.h"
-
 namespace {
-struct Frontier {
-    int x;
-    int y;
-    int wx;
-    int wy;
+struct Adjacent {
+    int to;
+    int edge;
 };
-} // namespace
 
-void prim(std::vector<std::vector<unsigned char>>& maze) {
-    assert(!maze.empty() && !maze.front().empty());
-    const int rows = static_cast<int>(maze.size());
-    const int cols = static_cast<int>(maze.front().size());
+std::vector<std::vector<Adjacent>> buildAdj(const MazeGraph& g) {
+    std::vector<std::vector<Adjacent>> adj(g.nodes.size());
+    for (int i = 0; i < static_cast<int>(g.edges.size()); ++i) {
+        const auto& e = g.edges[i];
+        adj[e.from].push_back({e.to, i});
+        adj[e.to].push_back({e.from, i});
+    }
+    return adj;
+}
 
-    auto [startX, startY] = odd_center(cols, rows);
-    maze[startY][startX] = 0;
+int pickStart(const int requested, const int count) {
+    if (requested >= 0 && requested < count) return requested;
+    return rand_int(count) - 1;
+}
+} 
 
-    std::vector<Frontier> frontier;
-    frontier.reserve(static_cast<size_t>(rows * cols) / 2);
+MazeGraph prim_generate(MazeGraph g, const int startNode) {
+    const int count = static_cast<int>(g.nodes.size());
+    if (count == 0) return g;
 
-    auto addFrontier = [&](const int x, const int y, const int wx, const int wy) {
-        if (in_bounds_cell(x, y, cols, rows) && maze[y][x] == 1) {
-            const bool exists = std::ranges::any_of(frontier, [&](const Frontier& f) {
-                return f.x == x && f.y == y;
-            });
-            if (!exists) {
-                frontier.push_back({x, y, wx, wy});
+    auto adj = buildAdj(g);
+    const int start = pickStart(startNode, count);
+
+    std::vector<bool> inTree(count, false);
+    std::vector<Adjacent> frontier;
+
+    auto addFrontier = [&](int node) {
+        for (const auto& nb : adj[node]) {
+            if (!inTree[nb.to]) {
+                frontier.push_back(nb);
             }
         }
     };
 
-    for (const auto& step : kSteps) {
-        addFrontier(startX + step.dx, startY + step.dy, startX + step.dx / 2, startY + step.dy / 2);
-    }
+    inTree[start] = true;
+    addFrontier(start);
 
     while (!frontier.empty()) {
-        const size_t idx = std::uniform_int_distribution<size_t>(0, frontier.size() - 1)(rng);
-        Frontier f = frontier[idx];
-
-        frontier.erase(
-            std::remove_if(frontier.begin(), frontier.end(), [&](const Frontier& other) {
-                return other.x == f.x && other.y == f.y;
-            }),
-            frontier.end()
-        );
-
-        if (maze[f.y][f.x] != 1) {
+        std::shuffle(frontier.begin(), frontier.end(), rng);
+        const Adjacent chosen = frontier.back();
+        frontier.pop_back();
+        if (inTree[chosen.to]) {
             continue;
         }
-
-        maze[f.y][f.x] = 0;
-        maze[f.wy][f.wx] = 0;
-
-        for (const auto& step : kSteps) {
-            addFrontier(f.x + step.dx, f.y + step.dy, f.x + step.dx / 2, f.y + step.dy / 2);
-        }
+        g.edges[chosen.edge].open = true;
+        inTree[chosen.to] = true;
+        addFrontier(chosen.to);
     }
+
+    return g;
 }

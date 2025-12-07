@@ -1,45 +1,61 @@
-#include "dfs.h"
+#include "puzzles/algoutils.h"
 
 #include <algorithm>
-#include <cassert>
 #include <stack>
-
-#include "algoutils.h"
+#include <vector>
 
 namespace {
-bool step_from(std::vector<std::vector<unsigned char>>& grid,
-               const int x,
-               const int y,
-               const std::array<Step, 4>& dirs,
-               std::stack<std::pair<int, int>>& stack) {
-    auto shuffled = dirs;
-    std::ranges::shuffle(shuffled, rng);
+struct Adjacent {
+    int to;
+    int edge;
+};
 
-    for (const auto& step : shuffled) {
-        if (carve_step(grid, x, y, step)) {
-            stack.push({x + step.dx, y + step.dy});
-            return true;
-        }
+std::vector<std::vector<Adjacent>> buildAdj(const MazeGraph& g) {
+    std::vector<std::vector<Adjacent>> adj(g.nodes.size());
+    for (int i = 0; i < static_cast<int>(g.edges.size()); ++i) {
+        const auto& e = g.edges[i];
+        adj[e.from].push_back({e.to, i});
+        adj[e.to].push_back({e.from, i});
     }
-    return false;
+    return adj;
 }
-} // namespace
 
-void dfs(std::vector<std::vector<unsigned char>> &v) {
-    assert(!v.empty() && !v.front().empty());
-    const int rows = static_cast<int>(v.size());
-    const int cols = static_cast<int>(v.front().size());
+int pickStart(const int requested, const int count) {
+    if (requested >= 0 && requested < count) return requested;
+    return rand_int(count) - 1; 
+}
+} 
 
-    auto [startX, startY] = odd_center(cols, rows);
-    v[startY][startX] = 0;
+MazeGraph dfs_generate(MazeGraph g, const int startNode) {
+    const int count = static_cast<int>(g.nodes.size());
+    if (count == 0) return g;
 
-    std::stack<std::pair<int, int>> stack;
-    stack.push({startX, startY});
+    const int start = pickStart(startNode, count);
+    auto adj = buildAdj(g);
+
+    std::vector<bool> visited(count, false);
+    std::stack<int> stack;
+    visited[start] = true;
+    stack.push(start);
 
     while (!stack.empty()) {
-        auto [x, y] = stack.top();
-        if (!step_from(v, x, y, kSteps, stack)) {
+        const int current = stack.top();
+        std::vector<Adjacent> neighbors = adj[current];
+        std::shuffle(neighbors.begin(), neighbors.end(), rng);
+
+        bool advanced = false;
+        for (const auto& nb : neighbors) {
+            if (visited[nb.to]) continue;
+            g.edges[nb.edge].open = true;
+            visited[nb.to] = true;
+            stack.push(nb.to);
+            advanced = true;
+            break;
+        }
+        if (!advanced) {
             stack.pop();
         }
     }
+
+    return g;
 }

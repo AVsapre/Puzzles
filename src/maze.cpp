@@ -1,38 +1,78 @@
-#include "../include/mazeutil/maze.h"
-#include "../include/mazeutil/rand.h"
-vector<vector<unsigned char>> maze;
-pair<int, int> maze_in;
-pair<int, int> maze_out;
-void carve_openings(vector<vector<unsigned char>> &v) {
-    assert(!v.empty() && !v.front().empty());
-    switch (rand_int(4)) {
-        case 1: maze_in = {0, 1}; break;
-        case 2: maze_in = {1, 0}; break;
-        case 3: maze_in = {0, static_cast<int>(v[0].size()) - 2}; break;
-        case 4: maze_in = {1, static_cast<int>(v[0].size()) - 1}; break;
-        default: maze_in = {0, 0}; break;
-    }
-    switch (rand_int(4)) {
-        case 1: maze_out = {static_cast<int>(v.size()) - 1, 1}; break;
-        case 2: maze_out = {static_cast<int>(v.size()) - 2, 0}; break;
-        case 3: maze_out = {static_cast<int>(v.size()) - 1, static_cast<int>(v[0].size()) - 2}; break;
-        case 4: maze_out = {static_cast<int>(v.size()) - 2, static_cast<int>(v[0].size()) - 1}; break;
-        default: maze_out = {0, 0}; break;
-    }
+#include "../include/puzzles/maze.h"
+#include "../include/puzzles/rand.h"
 
-    v[maze_in.first][maze_in.second] = false;
-    v[maze_out.first][maze_out.second] = false;
+Openings carve_openings(MazeGraph& g,
+                        const bool carveEntrance,
+                        const bool carveExit,
+                        const int preferredEntrance,
+                        const int preferredExit) {
+    Openings openings;
+    const int rows = g.rows;
+    const int cols = g.cols;
+    auto isBoundary = [&](int nodeId) {
+        if (nodeId < 0 || nodeId >= static_cast<int>(g.nodes.size())) return false;
+        const auto& n = g.nodes[nodeId];
+        return n.row == 0 || n.col == 0 || n.row == rows - 1 || n.col == cols - 1;
+    };
+
+    auto randomBoundary = [&]() -> int {
+        while (true) {
+            const int r = rand_int(rows) - 1;
+            const int c = rand_int(cols) - 1;
+            if (r < 0 || c < 0) continue;
+            if (r == 0 || c == 0 || r == rows - 1 || c == cols - 1) {
+                return r * cols + c;
+            }
+        }
+    };
+
+    if (carveEntrance) {
+        if (preferredEntrance >= 0 && preferredEntrance < static_cast<int>(g.nodes.size())) {
+            
+            openings.entranceNode = preferredEntrance;
+        } else {
+            openings.entranceNode = randomBoundary();
+        }
+        g.entranceNode = openings.entranceNode;
+    }
+    if (carveExit) {
+        auto oppositeBoundary = [&]() -> int {
+            if (openings.entranceNode < 0) return randomBoundary();
+            const auto& n = g.nodes[openings.entranceNode];
+            if (isBoundary(openings.entranceNode)) {
+                if (n.row == 0) { 
+                    const int c = rand_int(cols) - 1;
+                    return (rows - 1) * cols + c;
+                }
+                if (n.row == rows - 1) { 
+                    const int c = rand_int(cols) - 1;
+                    return c;
+                }
+                if (n.col == 0) { 
+                    const int r = rand_int(rows) - 1;
+                    return r * cols + (cols - 1);
+                }
+                if (n.col == cols - 1) { 
+                    const int r = rand_int(rows) - 1;
+                    return r * cols;
+                }
+            }
+            return randomBoundary();
+        };
+
+        if (preferredExit >= 0 && isBoundary(preferredExit) && preferredExit != openings.entranceNode) {
+            openings.exitNode = preferredExit;
+        } else {
+            openings.exitNode = oppositeBoundary();
+            if (openings.exitNode == openings.entranceNode) {
+                openings.exitNode = randomBoundary();
+            }
+        }
+        g.exitNode = openings.exitNode;
+    }
+    return openings;
 }
 
-vector<vector<unsigned char>> maze_template(const int units_width, const int units_height) {
-    assert(units_width > 0 && units_height > 0);
-    const int width = units_width*2 +1;
-    const int height = units_height*2 +1;
-    maze.clear();
-    maze.resize(height);
-    for (int j = 0; j < height; j++) {
-        maze[j].resize(width, 1);
-    }
-    return maze;
-
+MazeGraph build_maze_graph(const int units_width, const int units_height) {
+    return make_grid_graph(units_height, units_width);
 }

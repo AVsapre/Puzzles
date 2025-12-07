@@ -1,192 +1,110 @@
 #include "MazeGame.h"
 
-#include <algorithm>
-#include <random>
-#include <tuple>
-
-#include "algoutils.h"
-#include "bfs.h"
-#include "dfs.h"
-#include "kruskal.h"
-#include "prim.h"
-#include "tessellate.h"
-#include "wilson.h"
-
-extern std::vector<std::vector<unsigned char>> maze;
-extern std::pair<int, int> maze_in;
-extern std::pair<int, int> maze_out;
+#include "../include/puzzles/maze.h"
+#include "../include/puzzles/maze_graph.h"
+#include "puzzles/algoutils.h"
 
 namespace {
 int clampUnits(const int value) {
     return std::max(2, value);
 }
-} // namespace
+}
 
-void MazeGame::generate(const GenerationAlgorithm algorithm, const int widthUnits, const int heightUnits, const int depthUnits) {
-    solved_ = false;
-    layer_ = 0;
-    grid_.clear();
+bool MazeGame::generate(const GenerationAlgorithm algorithm,
+                        const int widthUnits,
+                        const int heightUnits,
+                        const std::pair<int, int> startUnits,
+                        const std::pair<int, int> exitUnits,
+                        const bool customExit) {
+    tested_ = false;
+    graph_ = build_maze_graph(clampUnits(widthUnits), clampUnits(heightUnits));
 
-    const int depth = std::max(1, depthUnits);
-
-    auto generateLayer = [&](std::vector<std::vector<unsigned char>>& layer) {
-        if (algorithm == GenerationAlgorithm::Tessellation) {
-            tessellate(std::max(1, widthUnits));
-            layer = maze;
-        } else {
-            layer = maze_template(clampUnits(widthUnits), clampUnits(heightUnits));
-            switch (algorithm) {
-                case GenerationAlgorithm::DFS: dfs(layer); break;
-                case GenerationAlgorithm::BFS: bfs(layer); break;
-                case GenerationAlgorithm::Wilson: wilson(layer); break;
-                case GenerationAlgorithm::Kruskal: kruskal(layer); break;
-                case GenerationAlgorithm::Prim: prim(layer); break;
-                case GenerationAlgorithm::Tessellation: break;
-            }
-        }
+    auto nodeIdFromUnits = [&](std::pair<int, int> units) -> int {
+        const int r = units.second - 1;
+        const int c = units.first - 1;
+        if (r < 0 || c < 0 || r >= graph_.rows || c >= graph_.cols) return -1;
+        return r * graph_.cols + c;
     };
 
-    grid_.resize(depth);
-    for (int z = 0; z < depth; ++z) {
-        generateLayer(grid_[z]);
+    int startNode = nodeIdFromUnits(startUnits);
+    int exitNode = customExit ? nodeIdFromUnits(exitUnits) : -1;
+
+    switch (algorithm) {
+        case GenerationAlgorithm::DFS: graph_ = dfs_generate(std::move(graph_), startNode); break;
+        case GenerationAlgorithm::BFS: graph_ = bfs_generate(std::move(graph_), startNode); break;
+        case GenerationAlgorithm::Wilson: graph_ = wilson_generate(std::move(graph_), startNode); break;
+        case GenerationAlgorithm::Kruskal: graph_ = kruskal_generate(std::move(graph_)); break;
+        case GenerationAlgorithm::Prim: graph_ = prim_generate(std::move(graph_), startNode); break;
+        case GenerationAlgorithm::Tessellation: graph_ = kruskal_generate(std::move(graph_)); break;
     }
 
-    carve_openings(grid_.front());
-    start_ = std::make_tuple(0, maze_in.first, maze_in.second);
-
-    carve_openings(grid_.back());
-    goal_ = std::make_tuple(depth - 1, maze_out.first, maze_out.second);
-
-    placeVerticalConnectors(std::max(1, std::min(widthUnits, heightUnits) / 4));
-
-    player_ = start_;
+    const Openings openings = carve_openings(graph_, true, true, startNode, exitNode);
+    entranceNode_ = openings.entranceNode;
+    exitNode_ = openings.exitNode;
+    playerNode_ = entranceNode_;
     refreshMarkers();
+    return true;
 }
 
 bool MazeGame::move(const Direction direction) {
-    if (grid_.empty() || solved_) {
-        return false;
-    }
+    if (playerNode_ < 0) return false;
+    const auto [row, col] = nodeCoords(playerNode_);
+    if (row < 0 || col < 0) return false;
 
-    int l, r, c;
-    std::tie(l, r, c) = player_;
-    int newRow = r;
-    int newCol = c;
-
+    int nextRow = row;
+    int nextCol = col;
     switch (direction) {
-        case Direction::UP:    newRow -= 1; break;
-        case Direction::DOWN:  newRow += 1; break;
-        case Direction::LEFT:  newCol -= 1; break;
-        case Direction::RIGHT: newCol += 1; break;
+        case Direction::UP:    --nextRow; break;
+        case Direction::DOWN:  ++nextRow; break;
+        case Direction::LEFT:  --nextCol; break;
+        case Direction::RIGHT: ++nextCol; break;
     }
 
-    if (newRow < 0 || newCol < 0 || newRow >= rows() || newCol >= cols()) {
+    if (nextRow < 0 || nextCol < 0 || nextRow >= graph_.rows || nextCol >= graph_.cols) {
         return false;
     }
 
-    const unsigned char cell = grid_[l][newRow][newCol];
-    if (cell == 1 || cell == 4) {
+    const int nextNode = nextRow * graph_.cols + nextCol;
+    const int edgeIdx = edge_index_between(graph_, playerNode_, nextNode);
+    if (edgeIdx < 0 || !graph_.edges[edgeIdx].open) {
         return false;
     }
 
-    grid_[l][r][c] = 0;
-    player_ = {l, newRow, newCol};
-
-    if (player_ == goal_) {
-        solved_ = true;
-    }
-
-    refreshMarkers();
+    playerNode_ = nextNode;
+    tested_ = true;
     return true;
 }
 
-bool MazeGame::moveLayer(const int delta) {
-    if (grid_.empty() || solved_ || delta == 0) {
-        return false;
-    }
-
-    int l, r, c;
-    std::tie(l, r, c) = player_;
-    const int target = l + delta;
-    if (target < 0 || target >= static_cast<int>(grid_.size())) {
-        return false;
-    }
-
-    const unsigned char cell = grid_[l][r][c];
-    if ((delta > 0 && cell != 5) || (delta < 0 && cell != 6)) {
-        return false;
-    }
-
-    if (grid_[target][r][c] == 1 || grid_[target][r][c] == 4) {
-        return false;
-    }
-
-    grid_[l][r][c] = 0;
-    layer_ = target;
-    player_ = {target, r, c};
-
-    if (player_ == goal_) {
-        solved_ = true;
-    }
-
-    refreshMarkers();
-    return true;
-}
-
-void MazeGame::load(const std::vector<std::vector<std::vector<unsigned char>>>& grid,
-                    std::tuple<int, int, int> start,
-                    std::tuple<int, int, int> goal) {
-    grid_ = grid;
-    start_ = start;
-    goal_ = goal;
-    player_ = start;
-    layer_ = std::get<0>(start);
-    solved_ = false;
+void MazeGame::load(const MazeGraph& graph,
+                    const int entranceNode,
+                    const int exitNode,
+                    const int playerNode) {
+    graph_ = graph;
+    entranceNode_ = entranceNode;
+    exitNode_ = exitNode;
+    playerNode_ = playerNode >= 0 ? playerNode : entranceNode_;
+    tested_ = false;
     refreshMarkers();
 }
 
 void MazeGame::refreshMarkers() {
-    if (grid_.empty()) {
-        return;
-    }
-
-    for (auto& layer : grid_) {
-        for (auto& row : layer) {
-            for (auto& cell : row) {
-                if (cell == 2 || cell == 3) {
-                    cell = 0;
-                }
-            }
-        }
-    }
-
-    const auto [l, r, c] = player_;
-    grid_[l][r][c] = 2;
-    if (!solved_) {
-        const auto [gl, gr, gc] = goal_;
-        grid_[gl][gr][gc] = 3;
-    }
+    
 }
 
-void MazeGame::placeVerticalConnectors(const int connectorsPerLayer) {
-    if (grid_.size() < 2) {
-        return;
-    }
+std::pair<int, int> MazeGame::nodeCoords(const int node) const {
+    if (node < 0 || node >= static_cast<int>(graph_.nodes.size())) return {-1, -1};
+    const auto& n = graph_.nodes[node];
+    return {n.row, n.col};
+}
 
-    std::uniform_int_distribution<int> distRow(1, rows() - 2);
-    std::uniform_int_distribution<int> distCol(1, cols() - 2);
+std::pair<int, int> MazeGame::entranceCell() const {
+    return nodeCoords(entranceNode_);
+}
 
-    for (size_t z = 0; z + 1 < grid_.size(); ++z) {
-        for (int i = 0; i < connectorsPerLayer; ++i) {
-            const int r = distRow(rng) | 1;
-            const int c = distCol(rng) | 1;
-            const int goalLayer = std::get<0>(goal_);
-            if ((z == 0 && r == std::get<1>(start_) && c == std::get<2>(start_)) ||
-                (static_cast<int>(z + 1) == goalLayer && r == std::get<1>(goal_) && c == std::get<2>(goal_))) {
-                continue;
-            }
-            grid_[z][r][c] = 5;       // down marker
-            grid_[z + 1][r][c] = 6;   // up marker
-        }
-    }
+std::pair<int, int> MazeGame::exitCell() const {
+    return nodeCoords(exitNode_);
+}
+
+std::pair<int, int> MazeGame::playerCell() const {
+    return nodeCoords(playerNode_);
 }

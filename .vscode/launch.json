@@ -2,10 +2,10 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Launch MazeUtil",
+      "name": "Launch Puzzles",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/build/Debug/MazeUtil",
+      "program": "${workspaceFolder}/build/Debug/Puzzles",
       "args": [],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",

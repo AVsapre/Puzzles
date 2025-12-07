@@ -1,4 +1,4 @@
-Simple maze utility. Generates mazes with multiple algorithms, now shipped as a Qt desktop app. A legacy terminal build is available behind a flag.
+Simple puzzle application. Generates a variety of simple paper puzzles. Ships as a Qt desktop app.
 
 ## Building
 
@@ -9,10 +9,10 @@ cmake --build build/Debug
 
 Run the app:
 
-`./build/Debug/MazeUtil`
+`./build/Debug/Puzzles`
 
-Pick an algorithm, set the maze dimensions, click Generate, and move with WASD/arrow keys (or the on-screen buttons).
+Pick a puzzle type (maze, crossword, or word search), configure settings, click Create Puzzle, and interact with it.
 
-### Optional: terminal build
+## License
 
-If you still want the terminal version, configure with `-DBUILD_CLI=ON` and run `./build/Debug/MazeUtilCli`.
+GPL-3.0-or-later. This aligns with Qt’s GPL offering; if you build against Qt under its GPL terms, this app remains compatible.

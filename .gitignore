@@ -1,23 +1,42 @@
 # Build directories
-cmake-build-*/
-CMakeFiles/
-CMakeCache.txt
-Makefile
-*.o
-*.obj
-*.out
-*.exe
-*.log
 build/
+cmake-build-debug/
+cmake-build-release/
 
-# CLion and IDE files
+# IDE
 .idea/
-*.user
+.vscode/
 *.swp
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Optional: backup files
+*.swo
 *~
+.DS_Store
+
+# Qt
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+*.pro.user
+
+# Compiled binaries
+*.o
+*.exe
+*.dll
+*.so
+*.dylib
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+CMakeUserPresets.json
+compile_commands.json
+
+# Old CLI files (to be deleted)
+src/main_cli.cpp
+src/control.cpp
+src/keyboardInput.cpp
+src/render.cpp
+src/game.cpp
+include/puzzles/control.h
+include/puzzles/keyboardInput.h
+include/puzzles/render.h
+include/puzzles/game.h

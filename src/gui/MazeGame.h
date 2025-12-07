@@ -2,41 +2,45 @@
 
 #include <utility>
 #include <vector>
-#include <tuple>
 
 #include "maze.h"
+#include "../include/puzzles/maze_graph.h"
 
 enum class GenerationAlgorithm { DFS, BFS, Wilson, Kruskal, Prim, Tessellation };
 
 class MazeGame {
 public:
-    void generate(GenerationAlgorithm algorithm, int widthUnits, int heightUnits, int depthUnits);
+    bool generate(GenerationAlgorithm algorithm,
+                  int widthUnits,
+                  int heightUnits,
+                  std::pair<int, int> startUnits = {-1, -1},
+                  std::pair<int, int> exitUnits = {-1, -1},
+                  bool customExit = false);
     bool move(Direction direction);
-    bool moveLayer(int delta);
-    void load(const std::vector<std::vector<std::vector<unsigned char>>>& grid,
-              std::tuple<int, int, int> start,
-              std::tuple<int, int, int> goal);
+    void load(const MazeGraph& graph,
+              int entranceNode,
+              int exitNode,
+              int playerNode = -1);
 
-    [[nodiscard]] const std::vector<std::vector<std::vector<unsigned char>>>& grid() const { return grid_; }
-    [[nodiscard]] bool solved() const { return solved_; }
-    [[nodiscard]] bool hasMaze() const { return !grid_.empty(); }
-    [[nodiscard]] int rows() const { return grid_.empty() ? 0 : static_cast<int>(grid_.front().size()); }
-    [[nodiscard]] int cols() const { return (grid_.empty() || grid_.front().empty()) ? 0 : static_cast<int>(grid_.front().front().size()); }
-    [[nodiscard]] int layers() const { return static_cast<int>(grid_.size()); }
-    [[nodiscard]] int currentLayer() const { return layer_; }
-    [[nodiscard]] const std::vector<std::vector<unsigned char>>& layerGrid(int layer) const { return grid_.at(layer); }
-    [[nodiscard]] std::tuple<int, int, int> start() const { return start_; }
-    [[nodiscard]] std::tuple<int, int, int> goal() const { return goal_; }
-    [[nodiscard]] std::tuple<int, int, int> player() const { return player_; }
+    [[nodiscard]] const MazeGraph& graph() const { return graph_; }
+    [[nodiscard]] bool tested() const { return tested_; }
+    [[nodiscard]] bool hasMaze() const { return !graph_.nodes.empty(); }
+    [[nodiscard]] int rows() const { return graph_.rows; }
+    [[nodiscard]] int cols() const { return graph_.cols; }
+    [[nodiscard]] int entranceNode() const { return entranceNode_; }
+    [[nodiscard]] int exitNode() const { return exitNode_; }
+    [[nodiscard]] int playerNode() const { return playerNode_; }
+    [[nodiscard]] std::pair<int, int> entranceCell() const;
+    [[nodiscard]] std::pair<int, int> exitCell() const;
+    [[nodiscard]] std::pair<int, int> playerCell() const;
 
 private:
-    std::vector<std::vector<std::vector<unsigned char>>> grid_;
-    std::tuple<int, int, int> player_{0, 0, 0}; // layer, row, col
-    std::tuple<int, int, int> start_{0, 0, 0};
-    std::tuple<int, int, int> goal_{0, 0, 0};
-    int layer_ = 0;
-    bool solved_ = false;
+    MazeGraph graph_;
+    int entranceNode_ = -1;
+    int exitNode_ = -1;
+    int playerNode_ = -1;
+    bool tested_ = false;
 
     void refreshMarkers();
-    void placeVerticalConnectors(int connectorsPerLayer);
+    [[nodiscard]] std::pair<int, int> nodeCoords(int node) const;
 };
