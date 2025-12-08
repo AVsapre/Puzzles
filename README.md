@@ -34,4 +34,4 @@ Pick a puzzle type, set your preferences, create it, and solve. Right-click save
 
 ## License
 
-GPL-3.0-or-later
+GPL-3.0
