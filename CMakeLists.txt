@@ -67,3 +67,37 @@ if(MSVC)
 else()
     target_compile_options(Puzzles PRIVATE -Wall -Wextra -Wpedantic -Wshadow -Wconversion -O2)
 endif()
+
+# Windows executable settings
+if(WIN32)
+    set_target_properties(Puzzles PROPERTIES WIN32_EXECUTABLE ON)
+    # Set icon for Windows
+    target_sources(Puzzles PRIVATE ${PROJECT_SOURCE_DIR}/icon/logo.ico)
+endif()
+
+# macOS app settings
+if(APPLE)
+    set_target_properties(Puzzles PROPERTIES
+        MACOSX_BUNDLE ON
+        MACOSX_BUNDLE_BUNDLE_NAME "Puzzles"
+        MACOSX_BUNDLE_BUNDLE_VERSION "1.0.0"
+        MACOSX_BUNDLE_SHORT_VERSION_STRING "1.0"
+        MACOSX_BUNDLE_ICON_FILE "logo.icns"
+        MACOSX_FRAMEWORK_IDENTIFIER "com.avs.puzzles"
+    )
+    
+    # Copy icon to Resources
+    set_source_files_properties(
+        ${PROJECT_SOURCE_DIR}/icon/logo.icns
+        PROPERTIES MACOSX_PACKAGE_LOCATION Resources
+    )
+endif()
+
+# Install targets for AppImage/Linux
+set(CMAKE_INSTALL_PREFIX /usr)
+
+install(TARGETS Puzzles DESTINATION bin)
+install(FILES ${PROJECT_SOURCE_DIR}/icon/logo.png DESTINATION share/pixmaps RENAME puzzles.png)
+install(FILES ${PROJECT_SOURCE_DIR}/icon/logo.png DESTINATION share/icons/hicolor/256x256/apps RENAME puzzles.png)
+install(FILES ${PROJECT_SOURCE_DIR}/puzzles.desktop DESTINATION share/applications)
+
