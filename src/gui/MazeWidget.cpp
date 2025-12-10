@@ -59,6 +59,30 @@ void MazeWidget::setColors(const QColor& walls, const QColor& background) {
     update();
 }
 
+QRect MazeWidget::cellRect(const int row, const int col) const {
+    if (graph_.rows <= 0 || graph_.cols <= 0) return {};
+    if (row < 0 || col < 0 || row >= graph_.rows || col >= graph_.cols) return {};
+
+    const int cell = cellSizePx();
+    const int mazeWidth = graph_.cols * cell;
+    const int mazeHeight = graph_.rows * cell;
+    const int offsetX = std::max(0, (width() - mazeWidth) / 2);
+    const int offsetY = std::max(0, (height() - mazeHeight) / 2);
+    return QRect(offsetX + col * cell, offsetY + row * cell, cell, cell);
+}
+
+QPointF MazeWidget::cellCenter(const double row, const double col) const {
+    if (graph_.rows <= 0 || graph_.cols <= 0) return {};
+    if (row < 0.0 || col < 0.0 || row >= static_cast<double>(graph_.rows) || col >= static_cast<double>(graph_.cols)) return {};
+
+    const int cell = cellSizePx();
+    const int mazeWidth = graph_.cols * cell;
+    const int mazeHeight = graph_.rows * cell;
+    const int offsetX = std::max(0, (width() - mazeWidth) / 2);
+    const int offsetY = std::max(0, (height() - mazeHeight) / 2);
+    return QPointF(offsetX + (col + 0.5) * cell, offsetY + (row + 0.5) * cell);
+}
+
 QSize MazeWidget::sizeHint() const {
     if (graph_.rows > 0 && graph_.cols > 0) {
         const int cell = cellSizePx();
@@ -443,6 +467,7 @@ void MazeWidget::startMove(const int fromRow, const int fromCol, const int toRow
     isAnimating_ = true;
     animationClock_.restart();
     animationTimer_->start();
+    emit playerDisplayPositionChanged(static_cast<double>(playerRow_), static_cast<double>(playerCol_));
     update();
 }
 
@@ -483,6 +508,9 @@ void MazeWidget::updateAnimation() {
     const double elapsedMs = static_cast<double>(animationClock_.elapsed());
     const double durationMs = static_cast<double>(animationDurationMs_);
     animationProgress_ = std::clamp(elapsedMs / durationMs, 0.0, 1.0);
+    const double displayRow = playerRow_ + (targetRow_ - playerRow_) * animationProgress_;
+    const double displayCol = playerCol_ + (targetCol_ - playerCol_) * animationProgress_;
+    emit playerDisplayPositionChanged(displayRow, displayCol);
 
     if (animationProgress_ >= 1.0) {
         animationProgress_ = 1.0;

@@ -65,6 +65,8 @@ private:
     void updateStatus();
     void updateSizeControls();
     void updateGeneratorView();
+    void centerMazeOnPosition(double row, double col);
+    void centerMazeOnCell(int row, int col);
     void addWordRow(const QString& word = {}, const QString& hint = {});
     void removeWordRow(QWidget* rowWidget);
     void loadMaze(int index);

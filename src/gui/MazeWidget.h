@@ -5,6 +5,8 @@
 #include <QElapsedTimer>
 #include <QWheelEvent>
 #include <QColor>
+#include <QRect>
+#include <QPointF>
 #include <vector>
 
 #include "maze.h"
@@ -24,9 +26,12 @@ public:
     void resetZoom();
     void setZoomFactor(double factor);
     [[nodiscard]] double zoomFactor() const { return zoomFactor_; }
+    [[nodiscard]] QRect cellRect(int row, int col) const;
+    [[nodiscard]] QPointF cellCenter(double row, double col) const;
 
 signals:
     void moveRequested(Direction direction);
+    void playerDisplayPositionChanged(double row, double col);
 
 protected:
     void paintEvent(QPaintEvent* event) override;

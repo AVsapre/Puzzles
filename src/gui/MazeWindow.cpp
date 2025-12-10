@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <QAbstractItemView>
 #include <QCloseEvent>
 #include <QComboBox>
@@ -23,6 +24,7 @@
 #include <QRegularExpression>
 #include <QTextEdit>
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QPalette>
 #include <QSizePolicy>
 #include <QSpinBox>
@@ -679,6 +681,9 @@ MazeWindow::MazeWindow(QWidget* parent) : QMainWindow(parent) {
     central->setLayout(mainLayout);
 
     connect(mazeWidget_, &MazeWidget::moveRequested, this, &MazeWindow::handleMove);
+    connect(mazeWidget_, &MazeWidget::playerDisplayPositionChanged, this, [this](double row, double col) {
+        centerMazeOnPosition(row, col);
+    });
     connect(algorithmCombo_, &QComboBox::currentIndexChanged, this, [this, warnUnsupportedStart](int) {
         updateSizeControls();
         warnUnsupportedStart();
@@ -1266,6 +1271,38 @@ void MazeWindow::saveCryptogramImage() {
     }
 }
 
+void MazeWindow::centerMazeOnPosition(const double row, const double col) {
+    if (!mazeScroll_ || !mazeWidget_) {
+        return;
+    }
+
+    const QRect cell = mazeWidget_->cellRect(static_cast<int>(std::floor(row)), static_cast<int>(std::floor(col)));
+    if (!cell.isValid()) {
+        return;
+    }
+
+    const QPointF center = mazeWidget_->cellCenter(row, col);
+    if (std::isnan(center.x()) || std::isnan(center.y())) {
+        return;
+    }
+
+    auto* viewport = mazeScroll_->viewport();
+    auto* hBar = mazeScroll_->horizontalScrollBar();
+    auto* vBar = mazeScroll_->verticalScrollBar();
+    if (!viewport || !hBar || !vBar) {
+        return;
+    }
+
+    const int targetX = static_cast<int>(std::lround(center.x() - viewport->width() / 2.0));
+    const int targetY = static_cast<int>(std::lround(center.y() - viewport->height() / 2.0));
+    hBar->setValue(std::clamp(targetX, hBar->minimum(), hBar->maximum()));
+    vBar->setValue(std::clamp(targetY, vBar->minimum(), vBar->maximum()));
+}
+
+void MazeWindow::centerMazeOnCell(const int row, const int col) {
+    centerMazeOnPosition(static_cast<double>(row), static_cast<double>(col));
+}
+
 void MazeWindow::handleMove(const Direction direction) {
     if (activeMode_ != ActiveMode::Maze || !game_.hasMaze()) {
         return;
@@ -1274,6 +1311,8 @@ void MazeWindow::handleMove(const Direction direction) {
     const auto playerBefore = game_.playerCell();
     const int prevRow = playerBefore.first;
     const int prevCol = playerBefore.second;
+    centerMazeOnCell(prevRow, prevCol);
+
     if (game_.move(direction)) {
         const auto [r, c] = game_.playerCell();
         mazeWidget_->startMove(prevRow, prevCol, r, c);
