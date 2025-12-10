@@ -1,8 +1,7 @@
 #pragma once
 
-#pragma once
-
 #include <QWidget>
+#include <QColor>
 #include <vector>
 #include <string>
 
@@ -18,6 +17,7 @@ public:
     void setPuzzle(const CryptogramPuzzle& puzzle);
     void clear();
     void setTestMode(bool testing);
+    void setColors(const QColor& line, const QColor& background);
     [[nodiscard]] QSize sizeHint() const override;
 
     
@@ -31,7 +31,9 @@ public:
                               int contentWidth,
                               int padding,
                               int cellSize = 32,
-                              std::vector<QRect>* outBoxes = nullptr);
+                              std::vector<QRect>* outBoxes = nullptr,
+                              const QColor& lineColor = QColor(30, 30, 30),
+                              const QColor& backgroundColor = Qt::white);
 
 protected:
     void paintEvent(QPaintEvent* event) override;
@@ -48,6 +50,8 @@ private:
     std::vector<int> wordIds_;          
     std::vector<bool> wordSolved_;
     std::vector<QRect> boxPositions_;   
+    QColor lineColor_{30, 30, 30};
+    QColor backgroundColor_{Qt::white};
     
     void rebuildWordIds();
     void recomputeSolved();

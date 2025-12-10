@@ -46,6 +46,12 @@ void CrosswordWidget::setTestMode(bool testing) {
     update();
 }
 
+void CrosswordWidget::setColors(const QColor& line, const QColor& background) {
+    lineColor_ = line;
+    backgroundColor_ = background;
+    update();
+}
+
 QSize CrosswordWidget::sizeHint() const {
     const int rows = static_cast<int>(puzzle_.grid.size());
     const int cols = rows == 0 ? 15 : static_cast<int>(puzzle_.grid.front().size());
@@ -324,7 +330,7 @@ bool CrosswordWidget::isCompleted() const {
 
 void CrosswordWidget::paintEvent(QPaintEvent* ) {
     QPainter painter(this);
-    painter.fillRect(rect(), Qt::white);
+    painter.fillRect(rect(), backgroundColor_);
 
     const int rows = static_cast<int>(puzzle_.grid.size());
     const int cols = rows == 0 ? 0 : static_cast<int>(puzzle_.grid.front().size());
@@ -374,19 +380,19 @@ void CrosswordWidget::paintEvent(QPaintEvent* ) {
                 
                 const int num = puzzle_.numbers.empty() ? 0 : puzzle_.numbers[r][c];
                 if (num > 0) {
-                    painter.setPen(Qt::black);
+                    painter.setPen(lineColor_);
                     painter.setFont(numFont);
                     painter.drawText(tile.adjusted(cell * 0.08, cell * 0.05, -cell * 0.05, -cell * 0.6), Qt::AlignLeft | Qt::AlignTop, QString::number(num));
                 }
                 
                 if (testMode_ && !userInput_.empty() && userInput_[r][c] != ' ') {
                     painter.setFont(letterFont);
-                    painter.setPen(Qt::black);
+                    painter.setPen(lineColor_);
                     painter.drawText(tile, Qt::AlignCenter, QString(userInput_[r][c]));
                 }
                 
                 painter.setFont(letterFont);
-                painter.setPen(Qt::black);
+                painter.setPen(lineColor_);
                 painter.drawRect(tile);
             }
         }

@@ -323,6 +323,7 @@ MazeWindow::MazeWindow(QWidget* parent) : QMainWindow(parent) {
     mazeScroll_->installEventFilter(this);
 
     crosswordWidget_ = new CrosswordWidget(this);
+    crosswordWidget_->setColors(mazeWallColor_, mazeBackgroundColor_);
     crosswordWidget_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     crosswordScroll_ = new QScrollArea(this);
     crosswordScroll_->setWidgetResizable(true);
@@ -340,6 +341,7 @@ MazeWindow::MazeWindow(QWidget* parent) : QMainWindow(parent) {
     });
 
     wordSearchWidget_ = new WordSearchWidget(this);
+    wordSearchWidget_->setColors(mazeWallColor_, mazeBackgroundColor_);
     wordSearchWidget_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     wordSearchScroll_ = new QScrollArea(this);
     wordSearchScroll_->setWidgetResizable(true);
@@ -349,6 +351,7 @@ MazeWindow::MazeWindow(QWidget* parent) : QMainWindow(parent) {
     wordSearchScroll_->setWidget(wordSearchWidget_);
 
     sudokuWidget_ = new SudokuWidget(this);
+    sudokuWidget_->setColors(mazeWallColor_, mazeBackgroundColor_);
     sudokuWidget_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     sudokuScroll_ = new QScrollArea(this);
     sudokuScroll_->setWidgetResizable(true);
@@ -356,8 +359,9 @@ MazeWindow::MazeWindow(QWidget* parent) : QMainWindow(parent) {
     sudokuScroll_->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     sudokuScroll_->setStyleSheet("QScrollArea { background-color: white; }");
     sudokuScroll_->setWidget(sudokuWidget_);
-    
+
     cryptogramWidget_ = new CryptogramWidget(this);
+    cryptogramWidget_->setColors(mazeWallColor_, mazeBackgroundColor_);
     cryptogramWidget_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     cryptogramScroll_ = new QScrollArea(this);
     cryptogramScroll_->setWidgetResizable(true);
@@ -815,11 +819,7 @@ void MazeWindow::generateMaze() {
     savedPuzzles_.push_back(puzzle);
 
     const int row = static_cast<int>(savedPuzzles_.size()) - 1;
-    savedList_->addItem(QString("%1 — %2 (%3x%4)")
-        .arg(mazeName.isEmpty() ? QString("Maze %1").arg(row + 1) : mazeName)
-        .arg(algorithmLabel(algorithm))
-        .arg(savedMaze.width)
-        .arg(savedMaze.height));
+    savedList_->addItem(mazeName.isEmpty() ? QString("Maze %1").arg(row + 1) : mazeName);
     savedList_->blockSignals(true);
     savedList_->setCurrentRow(row);
     savedList_->blockSignals(false);
@@ -885,9 +885,7 @@ void MazeWindow::generateCrossword() {
     savedPuzzles_.push_back(savedPuzzle);
     
     const int row = static_cast<int>(savedPuzzles_.size()) - 1;
-    savedList_->addItem(QString("Crossword %1 — %2 words")
-        .arg(row + 1)
-        .arg(words.size()));
+    savedList_->addItem(QString("Crossword %1").arg(row + 1));
     savedList_->blockSignals(true);
     savedList_->setCurrentRow(row);
     savedList_->blockSignals(false);
@@ -1021,9 +1019,7 @@ void MazeWindow::generateSudoku() {
     savedPuzzles_.push_back(savedPuzzle);
     
     const int row = static_cast<int>(savedPuzzles_.size()) - 1;
-    savedList_->addItem(QString("%1 — %2")
-        .arg(sudokuName)
-        .arg(sudokuDifficultyLabel(difficulty)));
+    savedList_->addItem(sudokuName);
     savedList_->blockSignals(true);
     savedList_->setCurrentRow(row);
     savedList_->blockSignals(false);
@@ -1085,7 +1081,7 @@ void MazeWindow::generateCryptogram() {
     savedCryptograms_.push_back(*savedPuzzle.cryptogram);
     
     const int row = static_cast<int>(savedPuzzles_.size()) - 1;
-    savedList_->addItem(QString("%1 — %2 chars").arg(name).arg(rawPlain.trimmed().length()));
+    savedList_->addItem(name);
     savedList_->blockSignals(true);
     savedList_->setCurrentRow(row);
     savedList_->blockSignals(false);
@@ -1168,7 +1164,7 @@ void MazeWindow::saveSudokuImage() {
     const int imageHeight = gridHeight + padding * 2 + headerHeight;
 
     QImage image(imageWidth, imageHeight, QImage::Format_ARGB32);
-    image.fill(Qt::white);
+    image.fill(mazeBackgroundColor_);
 
     QPainter painter(&image);
     painter.setRenderHint(QPainter::Antialiasing, true);
@@ -1176,7 +1172,7 @@ void MazeWindow::saveSudokuImage() {
 
     if (!title.isEmpty()) {
         painter.setFont(titleFont);
-        painter.setPen(Qt::black);
+        painter.setPen(mazeWallColor_);
         painter.drawText(QRect(padding, padding / 2, imageWidth - padding * 2, headerHeight),
                          Qt::AlignLeft | Qt::AlignVCenter, title);
     }
@@ -1185,25 +1181,25 @@ void MazeWindow::saveSudokuImage() {
     const int offsetY = padding + headerHeight;
 
     painter.setFont(numberFont);
-    const QColor blockShade(245, 245, 245);
+    const QColor blockShade = mazeBackgroundColor_.lighter(108);
     for (int r = 0; r < rows; ++r) {
         for (int c = 0; c < cols; ++c) {
             const QRect tile(offsetX + c * cell, offsetY + r * cell, cell, cell);
             if (((r / 3) + (c / 3)) % 2 == 0) {
                 painter.fillRect(tile, blockShade);
             } else {
-                painter.fillRect(tile, Qt::white);
+                painter.fillRect(tile, mazeBackgroundColor_);
             }
 
             const int value = puzzle.grid[r][c];
             if (value != 0) {
-                painter.setPen(Qt::black);
+                painter.setPen(mazeWallColor_);
                 painter.drawText(tile, Qt::AlignCenter, QString::number(value));
             }
         }
     }
 
-    painter.setPen(QPen(Qt::black, 1));
+    painter.setPen(QPen(mazeWallColor_, 1));
     for (int i = 0; i <= rows; ++i) {
         painter.drawLine(offsetX, offsetY + i * cell, offsetX + gridWidth, offsetY + i * cell);
     }
@@ -1211,7 +1207,7 @@ void MazeWindow::saveSudokuImage() {
         painter.drawLine(offsetX + i * cell, offsetY, offsetX + i * cell, offsetY + gridHeight);
     }
 
-    painter.setPen(QPen(Qt::black, 3));
+    painter.setPen(QPen(mazeWallColor_, 3));
     for (int i = 0; i <= rows; i += 3) {
         painter.drawLine(offsetX, offsetY + i * cell, offsetX + gridWidth, offsetY + i * cell);
     }
@@ -1257,13 +1253,13 @@ void MazeWindow::saveCryptogramImage() {
     const int padding = 24;
     const int contentWidth = 900;
     const int cellSize = 32;
-    const QSize measured = CryptogramWidget::renderPuzzle(nullptr, puzzle, nullptr, nullptr, nullptr, -1, false, contentWidth, padding, cellSize);
+    const QSize measured = CryptogramWidget::renderPuzzle(nullptr, puzzle, nullptr, nullptr, nullptr, -1, false, contentWidth, padding, cellSize, nullptr, mazeWallColor_, mazeBackgroundColor_);
     QImage image(measured.width(), measured.height(), QImage::Format_ARGB32);
-    image.fill(Qt::white);
+    image.fill(mazeBackgroundColor_);
     QPainter painter(&image);
     painter.setRenderHint(QPainter::Antialiasing, true);
     painter.setRenderHint(QPainter::TextAntialiasing, true);
-    CryptogramWidget::renderPuzzle(&painter, puzzle, nullptr, nullptr, nullptr, -1, false, contentWidth, padding, cellSize);
+    CryptogramWidget::renderPuzzle(&painter, puzzle, nullptr, nullptr, nullptr, -1, false, contentWidth, padding, cellSize, nullptr, mazeWallColor_, mazeBackgroundColor_);
     
     if (!image.save(path, "PNG")) {
         showSizedMessage(this, QMessageBox::Warning, "Save Failed", "Could not save the cryptogram image.");
@@ -1860,11 +1856,11 @@ void MazeWindow::createMenusAndToolbars() {
     endTestAction_ = viewMenu->addAction("End Test");
     connect(endTestAction_, &QAction::triggered, this, &MazeWindow::goHome);
     viewMenu->addSeparator();
-    auto* lineColorAction = viewMenu->addAction("Maze Line Color...");
+    auto* lineColorAction = viewMenu->addAction("Line Color...");
     connect(lineColorAction, &QAction::triggered, this, &MazeWindow::pickMazeWallColor);
-    auto* backgroundColorAction = viewMenu->addAction("Maze Background Color...");
+    auto* backgroundColorAction = viewMenu->addAction("Background Color...");
     connect(backgroundColorAction, &QAction::triggered, this, &MazeWindow::pickMazeBackgroundColor);
-    auto* hexColorsAction = viewMenu->addAction("Set Maze Colors (Hex)...");
+    auto* hexColorsAction = viewMenu->addAction("Set Colors (Hex)...");
     connect(hexColorsAction, &QAction::triggered, this, &MazeWindow::pickMazeColorsHex);
     viewMenu->addSeparator();
     zoomInAction_ = viewMenu->addAction("Zoom In");
@@ -1902,6 +1898,10 @@ void MazeWindow::applyMazeColors() {
     if (mazeWidget_) {
         mazeWidget_->setColors(mazeWallColor_, mazeBackgroundColor_);
     }
+    if (crosswordWidget_) crosswordWidget_->setColors(mazeWallColor_, mazeBackgroundColor_);
+    if (wordSearchWidget_) wordSearchWidget_->setColors(mazeWallColor_, mazeBackgroundColor_);
+    if (sudokuWidget_) sudokuWidget_->setColors(mazeWallColor_, mazeBackgroundColor_);
+    if (cryptogramWidget_) cryptogramWidget_->setColors(mazeWallColor_, mazeBackgroundColor_);
 }
 
 bool MazeWindow::eventFilter(QObject* watched, QEvent* event) {
@@ -1923,7 +1923,7 @@ bool MazeWindow::eventFilter(QObject* watched, QEvent* event) {
 }
 
 void MazeWindow::pickMazeWallColor() {
-    const QColor color = pickColorWithHex(this, mazeWallColor_, "Maze Line Color");
+    const QColor color = pickColorWithHex(this, mazeWallColor_, "Line Color");
     if (!color.isValid()) {
         return;
     }
@@ -1932,7 +1932,7 @@ void MazeWindow::pickMazeWallColor() {
 }
 
 void MazeWindow::pickMazeBackgroundColor() {
-    const QColor color = pickColorWithHex(this, mazeBackgroundColor_, "Maze Background Color");
+    const QColor color = pickColorWithHex(this, mazeBackgroundColor_, "Background Color");
     if (!color.isValid()) {
         return;
     }
@@ -1942,7 +1942,7 @@ void MazeWindow::pickMazeBackgroundColor() {
 
 void MazeWindow::pickMazeColorsHex() {
     QDialog dlg(this);
-    dlg.setWindowTitle("Set Maze Colors (Hex)");
+    dlg.setWindowTitle("Set Colors (Hex)");
     dlg.setModal(true);
     dlg.setSizeGripEnabled(false);
     dlg.setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, true);
@@ -1982,11 +1982,11 @@ void MazeWindow::pickMazeColorsHex() {
     };
 
     QObject::connect(wallPickBtn, &QPushButton::clicked, &dlg, [this, wallEdit, &dlg]() {
-        const QColor c = pickColorWithHex(&dlg, mazeWallColor_, "Maze Line Color");
+        const QColor c = pickColorWithHex(&dlg, mazeWallColor_, "Line Color");
         if (c.isValid()) wallEdit->setText(c.name(QColor::HexRgb));
     });
     QObject::connect(bgPickBtn, &QPushButton::clicked, &dlg, [this, bgEdit, &dlg]() {
-        const QColor c = pickColorWithHex(&dlg, mazeBackgroundColor_, "Maze Background Color");
+        const QColor c = pickColorWithHex(&dlg, mazeBackgroundColor_, "Background Color");
         if (c.isValid()) bgEdit->setText(c.name(QColor::HexRgb));
     });
 
@@ -2125,6 +2125,7 @@ std::unique_ptr<QWidget> MazeWindow::makeRenderWidgetForSelection(const int row)
         case SavedPuzzle::Type::Crossword:
             if (p.crossword) {
                 auto w = std::make_unique<CrosswordWidget>();
+                w->setColors(mazeWallColor_, mazeBackgroundColor_);
                 w->setPuzzle(p.crossword->puzzle);
                 w->setTestMode(false);
                 return w;
@@ -2133,6 +2134,7 @@ std::unique_ptr<QWidget> MazeWindow::makeRenderWidgetForSelection(const int row)
         case SavedPuzzle::Type::WordSearch:
             if (p.wordSearch) {
                 auto w = std::make_unique<WordSearchWidget>();
+                w->setColors(mazeWallColor_, mazeBackgroundColor_);
                 w->setPuzzle(p.wordSearch->puzzle);
                 w->setTestMode(false);
                 return w;
@@ -2141,6 +2143,7 @@ std::unique_ptr<QWidget> MazeWindow::makeRenderWidgetForSelection(const int row)
         case SavedPuzzle::Type::Sudoku:
             if (p.sudoku) {
                 auto w = std::make_unique<SudokuWidget>();
+                w->setColors(mazeWallColor_, mazeBackgroundColor_);
                 w->setPuzzle(p.sudoku->puzzle);
                 w->setTestMode(false);
                 return w;
@@ -2149,6 +2152,7 @@ std::unique_ptr<QWidget> MazeWindow::makeRenderWidgetForSelection(const int row)
         case SavedPuzzle::Type::Cryptogram:
             if (p.cryptogram) {
                 auto w = std::make_unique<CryptogramWidget>();
+                w->setColors(mazeWallColor_, mazeBackgroundColor_);
                 w->setPuzzle(p.cryptogram->puzzle);
                 w->setTestMode(false);
                 w->setFixedSize(w->sizeHint());
@@ -2606,11 +2610,7 @@ void MazeWindow::restoreState() {
             saved.maze = maze;
             savedPuzzles_.push_back(saved);
             savedMazes_.push_back(maze);
-            savedList_->addItem(QString("%1 — %2 (%3x%4)")
-                .arg(QString::fromStdString(maze.name))
-                .arg(algorithmLabel(maze.algorithm))
-                .arg(maze.width)
-                .arg(maze.height));
+            savedList_->addItem(QString::fromStdString(maze.name));
         } else if (type == "crossword") {
             SavedCrossword cw;
             cw.name = obj.value("name").toString("Crossword").toStdString();
@@ -2643,10 +2643,7 @@ void MazeWindow::restoreState() {
             saved.type = SavedPuzzle::Type::Crossword;
             saved.crossword = cw;
             savedPuzzles_.push_back(saved);
-            const int wordCount = static_cast<int>(cw.puzzle.across.size() + cw.puzzle.down.size());
-            savedList_->addItem(QString("%1 — %2 words")
-                .arg(QString::fromStdString(cw.name))
-                .arg(wordCount));
+            savedList_->addItem(QString::fromStdString(cw.name));
         } else if (type == "wordsearch") {
             SavedWordSearch ws;
             ws.name = obj.value("name").toString("Word Search").toStdString();
@@ -2680,9 +2677,7 @@ void MazeWindow::restoreState() {
             saved.type = SavedPuzzle::Type::Sudoku;
             saved.sudoku = sdk;
             savedPuzzles_.push_back(saved);
-            savedList_->addItem(QString("%1 — %2")
-                .arg(QString::fromStdString(sdk.name))
-                .arg(sudokuDifficultyLabel(sdk.difficulty)));
+            savedList_->addItem(QString::fromStdString(sdk.name));
         } else if (type == "cryptogram") {
             SavedCryptogram crypto;
             crypto.name = obj.value("name").toString("Cryptogram").toStdString();
@@ -2707,9 +2702,7 @@ void MazeWindow::restoreState() {
             saved.cryptogram = crypto;
             savedPuzzles_.push_back(saved);
             savedCryptograms_.push_back(crypto);
-            savedList_->addItem(QString("%1 — %2 chars")
-                .arg(QString::fromStdString(crypto.name))
-                .arg(static_cast<int>(crypto.puzzle.plainText.size())));
+            savedList_->addItem(QString::fromStdString(crypto.name));
         }
     }
 
@@ -2802,7 +2795,7 @@ void MazeWindow::saveCrosswordImage() {
     const int imageHeight = gridHeight + cluesHeight + padding * 3;
 
     QImage image(imageWidth, imageHeight, QImage::Format_ARGB32);
-    image.fill(Qt::white);
+    image.fill(mazeBackgroundColor_);
 
     QPainter painter(&image);
     painter.setRenderHint(QPainter::Antialiasing, false);
@@ -2810,28 +2803,28 @@ void MazeWindow::saveCrosswordImage() {
     const int offsetX = (imageWidth - gridWidth) / 2;
     const int offsetY = padding;
     painter.setFont(gridFont);
-    painter.setPen(Qt::black);
+    painter.setPen(mazeWallColor_);
     for (int r = 0; r < rows; ++r) {
         for (int c = 0; c < cols; ++c) {
             const QRect tile(offsetX + c * cell, offsetY + r * cell, cell, cell);
             const char ch = puzzle.grid[r][c];
             if (ch == '#') {
-                painter.fillRect(tile, QColor(30, 30, 30));
+                painter.fillRect(tile, mazeWallColor_);
             } else {
-                painter.fillRect(tile, Qt::white);
+                painter.fillRect(tile, mazeBackgroundColor_);
                 const int num = puzzle.numbers.empty() ? 0 : puzzle.numbers[r][c];
                 if (num > 0) {
                     painter.setFont(numberFont);
                     painter.drawText(tile.adjusted(3, 1, -1, -cell / 2), Qt::AlignLeft | Qt::AlignTop, QString::number(num));
                 }
             }
-            painter.setPen(QPen(Qt::black, 1));
+            painter.setPen(QPen(mazeWallColor_, 1));
             painter.drawRect(tile);
         }
     }
 
     painter.setFont(clueFont);
-    painter.setPen(Qt::black);
+    painter.setPen(mazeWallColor_);
     const int clueTop = offsetY + gridHeight + padding;
     painter.drawText(QRect(padding, clueTop, imageWidth - padding * 2, cluesHeight / 2), Qt::AlignLeft | Qt::AlignTop, acrossText);
     painter.drawText(QRect(padding, clueTop + cluesHeight / 2, imageWidth - padding * 2, cluesHeight / 2), Qt::AlignLeft | Qt::AlignTop, downText);
@@ -2881,7 +2874,7 @@ void MazeWindow::saveWordSearchImage() {
     const int imageHeight = std::max(gridHeight, wordListHeight) + padding * 2;
 
     QImage image(imageWidth, imageHeight, QImage::Format_ARGB32);
-    image.fill(Qt::white);
+    image.fill(mazeBackgroundColor_);
 
     QPainter painter(&image);
     painter.setRenderHint(QPainter::Antialiasing, true);
@@ -2889,22 +2882,22 @@ void MazeWindow::saveWordSearchImage() {
     const int offsetX = padding;
     const int offsetY = padding;
     painter.setFont(gridFont);
-    painter.setPen(Qt::black);
+    painter.setPen(mazeWallColor_);
     for (int r = 0; r < size; ++r) {
         for (int c = 0; c < size; ++c) {
             const QRect tile(offsetX + c * cell, offsetY + r * cell, cell, cell);
-            painter.fillRect(tile, Qt::white);
-            painter.setPen(QPen(Qt::black, 1));
+            painter.fillRect(tile, mazeBackgroundColor_);
+            painter.setPen(QPen(mazeWallColor_, 1));
             painter.drawRect(tile);
             
             const char ch = puzzle.grid[r][c];
-            painter.setPen(Qt::black);
+            painter.setPen(mazeWallColor_);
             painter.drawText(tile, Qt::AlignCenter, QString(QChar(ch)).toUpper());
         }
     }
 
     painter.setFont(wordFont);
-    painter.setPen(Qt::black);
+    painter.setPen(mazeWallColor_);
     const int wordListX = offsetX + gridWidth + padding;
     painter.drawText(QRect(wordListX, offsetY, wordListWidth, wordListHeight), Qt::AlignLeft | Qt::AlignTop, wordsText);
 

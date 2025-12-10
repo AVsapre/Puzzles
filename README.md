@@ -1,6 +1,6 @@
 Puzzles - A Qt-based puzzle generator and solver for creating and playing various puzzle types.
 
-## What's Included
+## Puzzle Types
 
 - **Mazes** - 6 different generation algorithms to choose from
 - **Crosswords** - Auto-generated with hints

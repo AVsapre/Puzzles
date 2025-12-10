@@ -1,0 +1,52 @@
+version: 1
+
+AppDir:
+  path: ./AppDir
+  app_info:
+    id: com.avs.puzzles
+    name: Puzzles
+    icon: puzzles
+    version: 1.0.0
+    exec: Puzzles
+    comment: A Qt-based puzzle generator and solver
+    categories:
+      - Game
+      - Utility
+
+  runtime:
+    enable: true
+    path_mappings:
+      - /usr/lib/x86_64-linux-gnu/gconv:/usr/lib/x86_64-linux-gnu/gconv
+
+  apt:
+    arch: amd64
+    sources:
+      - sourceline: deb [arch=amd64] http://archive.ubuntu.com/ubuntu/ jammy main universe
+        key_url: http://keyserver.ubuntu.com:11371/pks/lookup?op=get&search=0x871920D1991BC93C
+
+    include:
+      - libqt6gui6
+      - libqt6core6
+      - libqt6printsupport6
+      - libxkbcommon0
+      - libxcb1
+      - libxcb-render0
+      - libdbus-1-3
+
+  files:
+    - source: /home/atharva/Projects/Puzzles/build/Release/Puzzles
+      dest: ./usr/bin/Puzzles
+    - source: /home/atharva/Projects/Puzzles/icon/logo.png
+      dest: ./usr/share/pixmaps/puzzles.png
+    - source: /home/atharva/Projects/Puzzles/puzzles.desktop
+      dest: ./usr/share/applications/puzzles.desktop
+
+  after_bundle: |
+    # Ensure proper directory structure
+    mkdir -p AppDir/usr/lib/x86_64-linux-gnu
+    mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+    cp /home/atharva/Projects/Puzzles/icon/logo.png AppDir/usr/share/icons/hicolor/256x256/apps/puzzles.png
+
+AppImage:
+  arch: x86_64
+  filename: Puzzles-1.0.0-x86_64.AppImage

@@ -46,6 +46,12 @@ void WordSearchWidget::setTestMode(bool testing) {
     update();
 }
 
+void WordSearchWidget::setColors(const QColor& line, const QColor& background) {
+    lineColor_ = line;
+    backgroundColor_ = background;
+    update();
+}
+
 QSize WordSearchWidget::sizeHint() const {
     const int size = puzzle_.size > 0 ? puzzle_.size : 10;
     return {size * idealCellSize_, size * idealCellSize_};
@@ -170,7 +176,7 @@ bool WordSearchWidget::checkWord(int startRow, int startCol, int endRow, int end
 void WordSearchWidget::paintEvent(QPaintEvent* ) {
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
-    painter.fillRect(rect(), Qt::white);
+    painter.fillRect(rect(), backgroundColor_);
 
     if (puzzle_.grid.empty()) {
         painter.setPen(Qt::gray);
@@ -200,12 +206,12 @@ void WordSearchWidget::paintEvent(QPaintEvent* ) {
         for (int c = 0; c < size; ++c) {
             const QRectF tile(offsetX + c * cell, offsetY + r * cell, cell, cell);
             
-            painter.fillRect(tile, Qt::white);
-            painter.setPen(Qt::lightGray);
+            painter.fillRect(tile, backgroundColor_);
+            painter.setPen(lineColor_.lighter(160));
             painter.drawRect(tile);
             
             painter.setFont(letterFont);
-            painter.setPen(Qt::black);
+            painter.setPen(lineColor_);
             painter.drawText(tile, Qt::AlignCenter, QString(puzzle_.grid[r][c]));
         }
     }

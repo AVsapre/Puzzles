@@ -71,12 +71,18 @@ void CryptogramWidget::setTestMode(const bool testing) {
     update();
 }
 
+void CryptogramWidget::setColors(const QColor& line, const QColor& background) {
+    lineColor_ = line;
+    backgroundColor_ = background;
+    update();
+}
+
 QSize CryptogramWidget::sizeHint() const {
     if (puzzle_.cipherText.empty()) {
         return {600, 240};
     }
     const int contentWidth = 800;
-    const QSize sz = renderPuzzle(nullptr, puzzle_, nullptr, nullptr, nullptr, -1, false, contentWidth, padding_, cellSize_, nullptr);
+    const QSize sz = renderPuzzle(nullptr, puzzle_, nullptr, nullptr, nullptr, -1, false, contentWidth, padding_, cellSize_, nullptr, lineColor_, backgroundColor_);
     return {sz.width(), std::max(sz.height(), 240)};
 }
 
@@ -90,7 +96,9 @@ QSize CryptogramWidget::renderPuzzle(QPainter* painter,
                                      const int contentWidth,
                                      const int padding,
                                      const int cellSize,
-                                     std::vector<QRect>* outBoxes) {
+                                     std::vector<QRect>* outBoxes,
+                                     const QColor& lineColor,
+                                     const QColor& backgroundColor) {
     QFont mono = QFontDatabase::systemFont(QFontDatabase::FixedFont);
     mono.setPointSize(mono.pointSize() + 1);
     QFontMetrics metrics(mono);
@@ -115,9 +123,9 @@ QSize CryptogramWidget::renderPuzzle(QPainter* painter,
         if (solved) {
             painter->fillRect(boxRect, QColor(200, 235, 200));
         } else {
-            painter->fillRect(boxRect, QColor(255, 255, 255));
+            painter->fillRect(boxRect, backgroundColor);
         }
-        QPen pen(Qt::black);
+        QPen pen(lineColor);
         pen.setStyle(Qt::SolidLine);
         pen.setWidth(isSelected ? 2 : 1);
         if (isSelected) {
@@ -127,11 +135,11 @@ QSize CryptogramWidget::renderPuzzle(QPainter* painter,
         painter->setBrush(Qt::NoBrush);
         painter->drawRect(boxRect);
         if (plainChar != 0) {
-            painter->setPen(Qt::black);
+            painter->setPen(lineColor);
             painter->setFont(mono);
             painter->drawText(boxRect, Qt::AlignCenter, QString(QChar::fromLatin1(plainChar)));
         }
-        painter->setPen(Qt::black);
+        painter->setPen(lineColor);
         painter->setFont(mono);
         const int baseY = padding + by + cellSize + metrics.ascent();
         painter->drawText(QPoint(padding + bx + (cellSize - metrics.horizontalAdvance(QChar::fromLatin1(cipher))) / 2, baseY),
@@ -140,7 +148,7 @@ QSize CryptogramWidget::renderPuzzle(QPainter* painter,
     
     const auto drawPunct = [&](int bx, int by, char ch) {
         if (!painter) return;
-        painter->setPen(Qt::black);
+        painter->setPen(lineColor);
         painter->setFont(mono);
         const int baseY = padding + by + cellSize + metrics.ascent();
         painter->drawText(QPoint(padding + bx, baseY), QString(QChar::fromLatin1(ch)));
@@ -201,7 +209,7 @@ QSize CryptogramWidget::renderPuzzle(QPainter* painter,
     const QString hints = formatHints(puzzle);
     const int hintsHeight = hints.isEmpty() ? 0 : (metrics.height() + 8);
     if (painter && !hints.isEmpty()) {
-        painter->setPen(Qt::black);
+        painter->setPen(lineColor);
         painter->setFont(mono);
         const QRect hintRect(padding, padding + y + lineHeight + 4, std::max(contentWidth, maxX), hintsHeight);
         painter->drawText(hintRect, Qt::AlignLeft | Qt::AlignTop, hints);
@@ -214,7 +222,7 @@ QSize CryptogramWidget::renderPuzzle(QPainter* painter,
 
 void CryptogramWidget::paintEvent(QPaintEvent* ) {
     QPainter painter(this);
-    painter.fillRect(rect(), Qt::white);
+    painter.fillRect(rect(), backgroundColor_);
     
     if (puzzle_.cipherText.empty()) {
         painter.setPen(Qt::gray);
@@ -223,7 +231,7 @@ void CryptogramWidget::paintEvent(QPaintEvent* ) {
     }
     
     const int contentWidth = std::max(10, width() - padding_ * 2);
-    renderPuzzle(&painter, puzzle_, &userInput_, &wordSolved_, &wordIds_, selectedIndex_, false, contentWidth, padding_, cellSize_, &boxPositions_);
+    renderPuzzle(&painter, puzzle_, &userInput_, &wordSolved_, &wordIds_, selectedIndex_, false, contentWidth, padding_, cellSize_, &boxPositions_, lineColor_, backgroundColor_);
 }
 
 void CryptogramWidget::keyPressEvent(QKeyEvent* event) {

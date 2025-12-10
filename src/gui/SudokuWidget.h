@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QWidget>
+#include <QColor>
 
 #include "SudokuGenerator.h"
 
@@ -12,6 +13,7 @@ public:
     void setPuzzle(const SudokuPuzzle& puzzle);
     void clear();
     void setTestMode(bool testing);
+    void setColors(const QColor& line, const QColor& background);
 
 protected:
     void paintEvent(QPaintEvent* event) override;
@@ -26,6 +28,8 @@ private:
     int selectedRow_ = -1;
     int selectedCol_ = -1;
     std::vector<std::vector<int>> userInput_;
+    QColor lineColor_{30, 30, 30};
+    QColor backgroundColor_{Qt::white};
     
     void moveToNextCell();
     bool moveSelectionDelta(int dr, int dc);

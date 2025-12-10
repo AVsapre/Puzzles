@@ -42,6 +42,12 @@ void SudokuWidget::setTestMode(bool testing) {
     update();
 }
 
+void SudokuWidget::setColors(const QColor& line, const QColor& background) {
+    lineColor_ = line;
+    backgroundColor_ = background;
+    update();
+}
+
 QSize SudokuWidget::sizeHint() const {
     return {9 * idealCellSize_, 9 * idealCellSize_};
 }
@@ -189,7 +195,7 @@ bool SudokuWidget::isCompleted() const {
 
 void SudokuWidget::paintEvent(QPaintEvent* ) {
     QPainter painter(this);
-    painter.fillRect(rect(), Qt::white);
+    painter.fillRect(rect(), backgroundColor_);
 
     if (puzzle_.grid.empty()) {
         painter.setPen(Qt::gray);
@@ -225,25 +231,25 @@ void SudokuWidget::paintEvent(QPaintEvent* ) {
             } else if (testMode_ && r == selectedRow_ && c == selectedCol_) {
                 painter.fillRect(tile, QColor(200, 220, 255));
             } else {
-                painter.fillRect(tile, Qt::white);
+                painter.fillRect(tile, backgroundColor_);
             }
             
-            painter.setPen(Qt::black);
+            painter.setPen(lineColor_);
             
             int value = puzzle_.grid[r][c];
             if (value != 0) {
                 painter.drawText(tile, Qt::AlignCenter, QString::number(value));
             } else if (testMode_ && userInput_[r][c] != 0) {
-                painter.setPen(Qt::blue);
+                painter.setPen(lineColor_);
                 painter.drawText(tile, Qt::AlignCenter, QString::number(userInput_[r][c]));
             }
             
-            painter.setPen(Qt::black);
+            painter.setPen(lineColor_);
             painter.drawRect(tile);
         }
     }
     
-    painter.setPen(QPen(Qt::black, 3));
+    painter.setPen(QPen(lineColor_, 3));
     for (int i = 0; i <= 3; ++i) {
         const double y = offsetY + i * 3 * cell;
         const double x = offsetX + i * 3 * cell;

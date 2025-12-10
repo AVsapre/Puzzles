@@ -1,0 +1,5 @@
+#!/bin/bash
+HERE="$(cd "$(dirname "$0")" && pwd)"
+export LD_LIBRARY_PATH="$HERE/usr/lib:$HERE/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
+export QT_PLUGIN_PATH="$HERE/usr/lib/qt6/plugins"
+exec "$HERE/usr/bin/Puzzles" "$@"

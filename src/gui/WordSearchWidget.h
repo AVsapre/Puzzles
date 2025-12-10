@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QWidget>
+#include <QColor>
 #include <vector>
 #include "WordSearchGenerator.h"
 
@@ -17,6 +18,7 @@ public:
     void setPuzzle(const WordSearchPuzzle& puzzle);
     void clear();
     void setTestMode(bool testing);
+    void setColors(const QColor& line, const QColor& background);
 
 protected:
     void paintEvent(QPaintEvent* event) override;
@@ -35,9 +37,10 @@ private:
     int dragEndRow_ = -1;
     int dragEndCol_ = -1;
     std::vector<FoundWord> foundWords_;
+    QColor lineColor_{30, 30, 30};
+    QColor backgroundColor_{Qt::white};
     
     void getCellFromPos(const QPoint& pos, int& row, int& col);
     bool checkWord(int startRow, int startCol, int endRow, int endCol);
     std::string extractWord(int startRow, int startCol, int endRow, int endCol);
 };
-

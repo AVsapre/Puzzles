@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Puzzles
+Comment=A Qt-based puzzle generator and solver
+Exec=Puzzles
+Icon=puzzles
+Categories=Utility
+Terminal=false
+StartupNotify=true
+
